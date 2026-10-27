@@ -6,6 +6,16 @@ class VisitorStatus {
   static const String checkedOut = 'Checked Out';
 }
 
+class VisitorCategory {
+  VisitorCategory._();
+
+  static const String customer = 'Customer';
+  static const String vendor = 'Vendor';
+  static const String other = 'Other';
+
+  static const List<String> all = [customer, vendor, other];
+}
+
 class Visitor {
   final String id;
   final String name;
@@ -18,6 +28,9 @@ class Visitor {
   final String createdAt;
   final String? checkInTime;
   final String? checkOutTime;
+  final String? passNumber;
+  final String? unit;
+  final bool printPhysicalPass;
 
   const Visitor({
     this.id = '',
@@ -31,6 +44,9 @@ class Visitor {
     required this.createdAt,
     this.checkInTime,
     this.checkOutTime,
+    this.passNumber,
+    this.unit,
+    this.printPhysicalPass = false,
   });
 
   factory Visitor.fromJson(Map<String, dynamic> json) {
@@ -39,18 +55,27 @@ class Visitor {
       name: json['name']?.toString() ?? '',
       mobile: json['mobile']?.toString() ?? '',
       email: _nullIfEmpty(json['email']),
-      visitorType: json['visitor_type']?.toString() ?? '',
-      project: json['project']?.toString() ?? '',
-      purpose: json['purpose']?.toString() ?? '',
+      visitorType: json['visitor_type']?.toString() ??
+          json['visitorType']?.toString() ??
+          VisitorCategory.customer,
+      project: json['project']?.toString() ?? 'Project A (Sumadhura Horizon)',
+      purpose: json['purpose']?.toString() ?? 'Site Visit',
       status: json['status']?.toString() ?? VisitorStatus.registered,
-      createdAt: json['created_at']?.toString() ?? '',
-      checkInTime: _nullIfEmpty(json['check_in_time']),
-      checkOutTime: _nullIfEmpty(json['check_out_time']),
+      createdAt: json['created_at']?.toString() ??
+          json['createdAt']?.toString() ??
+          DateTime.now().toIso8601String(),
+      checkInTime: _nullIfEmpty(json['check_in_time'] ?? json['checkInTime']),
+      checkOutTime: _nullIfEmpty(json['check_out_time'] ?? json['checkOutTime']),
+      passNumber: _nullIfEmpty(json['pass_number'] ?? json['passNumber']),
+      unit: _nullIfEmpty(json['unit']),
+      printPhysicalPass: json['print_physical_pass'] == true ||
+          json['printPhysicalPass'] == true,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
+      'id': id,
       'name': name,
       'mobile': mobile,
       'email': email,
@@ -61,6 +86,9 @@ class Visitor {
       'created_at': createdAt,
       'check_in_time': checkInTime,
       'check_out_time': checkOutTime,
+      'pass_number': passNumber,
+      'unit': unit,
+      'print_physical_pass': printPhysicalPass,
     };
   }
 
@@ -86,6 +114,9 @@ class Visitor {
     String? createdAt,
     String? checkInTime,
     String? checkOutTime,
+    String? passNumber,
+    String? unit,
+    bool? printPhysicalPass,
   }) {
     return Visitor(
       id: id ?? this.id,
@@ -99,6 +130,9 @@ class Visitor {
       createdAt: createdAt ?? this.createdAt,
       checkInTime: checkInTime ?? this.checkInTime,
       checkOutTime: checkOutTime ?? this.checkOutTime,
+      passNumber: passNumber ?? this.passNumber,
+      unit: unit ?? this.unit,
+      printPhysicalPass: printPhysicalPass ?? this.printPhysicalPass,
     );
   }
 
@@ -115,11 +149,20 @@ class Visitor {
   DateTime? get checkOutDate =>
       checkOutTime == null ? null : DateTime.tryParse(checkOutTime!)?.toLocal();
 
-  static bool _isSameDay(DateTime? d, DateTime now) =>
-      d != null && d.year == now.year && d.month == now.month && d.day == now.day;
+  String get initials {
+    final parts = name.trim().split(RegExp(r'\s+'));
+    if (parts.isEmpty || parts.first.isEmpty) return 'V';
+    if (parts.length == 1) {
+      return parts.first.substring(0, parts.first.length.clamp(1, 2)).toUpperCase();
+    }
+    return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
+  }
 
-  bool get isRegisteredToday => _isSameDay(createdDate, DateTime.now());
-  bool get isCheckedOutToday => _isSameDay(checkOutDate, DateTime.now());
+  String get formattedPassNumber {
+    if (passNumber != null && passNumber!.isNotEmpty) return passNumber!;
+    final numId = int.tryParse(id) ?? 1;
+    return 'SUM-2024-${numId.toString().padLeft(3, '0')}';
+  }
 
   static String? _nullIfEmpty(dynamic value) {
     if (value == null) return null;
