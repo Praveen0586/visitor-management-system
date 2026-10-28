@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:vms/core/configs/theme/app_theme.dart';
 import 'package:vms/features/dashboard/viewmodels/dashboard_view_model.dart';
-import 'package:vms/features/dashboard/views/main_navigation_shell.dart';
+import 'package:vms/features/dashboard/views/splash_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,12 +21,12 @@ class VmsApp extends StatelessWidget {
         ),
       ],
       child: MaterialApp(
-        title: 'Sumadhura VMS',
+        title: 'Sumadhura GatePass',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light,
         darkTheme: AppTheme.dark,
         themeMode: ThemeMode.light,
-        home: const MainNavigationShell(),
+        home: const SplashScreen(),
       ),
     );
   }

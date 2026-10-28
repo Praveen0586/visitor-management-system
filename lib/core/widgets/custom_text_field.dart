@@ -77,7 +77,7 @@ class CustomTextField extends StatelessWidget {
             crossAxisAlignment:
                 maxLines > 1 ? CrossAxisAlignment.start : CrossAxisAlignment.center,
             children: [
-              if (prefixWidget != null) prefixWidget!,
+              ?prefixWidget,
               if (prefixIcon != null && prefixWidget == null)
                 Padding(
                   padding: EdgeInsets.only(

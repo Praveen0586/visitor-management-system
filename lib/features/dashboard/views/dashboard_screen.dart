@@ -11,6 +11,19 @@ import 'package:vms/features/dashboard/views/visitor_form_screen.dart';
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
 
+  String _getFormattedCurrentDate() {
+    final now = DateTime.now();
+    const weekdays = [
+      'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'
+    ];
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    final weekday = weekdays[now.weekday - 1];
+    final month = months[now.month - 1];
+    return '$weekday, ${now.day} $month ${now.year}';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -46,16 +59,16 @@ class DashboardScreen extends StatelessWidget {
                           ),
                           const SizedBox(height: 4),
                           Row(
-                            children: const [
-                              Icon(
+                            children: [
+                              const Icon(
                                 Icons.calendar_today_outlined,
                                 size: 14,
                                 color: Color(0xFF64748B),
                               ),
-                              SizedBox(width: 6),
+                              const SizedBox(width: 6),
                               Text(
-                                'Thursday, 24 Oct 2024',
-                                style: TextStyle(
+                                _getFormattedCurrentDate(),
+                                style: const TextStyle(
                                   fontSize: 13,
                                   color: Color(0xFF64748B),
                                   fontWeight: FontWeight.w500,
@@ -102,7 +115,7 @@ class DashboardScreen extends StatelessWidget {
                   // Total Visitors Today (Big Card)
                   BigMetricCard(
                     title: 'Total Visitors Today',
-                    value: vm.totalVisitorsCount.toString(),
+                    value: vm.todayVisitorsCount.toString(),
                     subtitle: 'All registered gates',
                     icon: Icons.people_alt_outlined,
                   ),
@@ -125,7 +138,7 @@ class DashboardScreen extends StatelessWidget {
                       Expanded(
                         child: SmallMetricCard(
                           title: 'Checked Out\nToday',
-                          value: vm.checkedOutCount.toString(),
+                          value: vm.checkedOutTodayCount.toString(),
                           icon: Icons.logout_rounded,
                           iconBg: const Color(0xFFEFF6FF),
                           iconColor: const Color(0xFF2563EB),
@@ -323,43 +336,43 @@ class DashboardScreen extends StatelessWidget {
                     }),
                   const SizedBox(height: 12),
 
-                  // Visitor Log Synchronized Banner (Dark Navy)
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                    decoration: BoxDecoration(
-                      color: AppTheme.navy,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      children: const [
-                        Icon(
-                          Icons.verified_outlined,
-                          color: AppTheme.gold,
-                          size: 20,
-                        ),
-                        SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            'Visitor Log Synchronized',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                        Text(
-                          'Just now',
-                          style: TextStyle(
-                            color: Color(0xFF94A3B8),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  // // Visitor Log Synchronized Banner (Dark Navy)
+                  // Container(
+                  //   width: double.infinity,
+                  //   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  //   decoration: BoxDecoration(
+                  //     color: AppTheme.navy,
+                  //     borderRadius: BorderRadius.circular(12),
+                  //   ),
+                  //   child: Row(
+                  //     children: const [
+                  //       Icon(
+                  //         Icons.verified_outlined,
+                  //         color: AppTheme.gold,
+                  //         size: 20,
+                  //       ),
+                  //       SizedBox(width: 10),
+                  //       Expanded(
+                  //         child: Text(
+                  //           'Visitor Log Synchronized',
+                  //           style: TextStyle(
+                  //             color: Colors.white,
+                  //             fontSize: 13,
+                  //             fontWeight: FontWeight.w600,
+                  //           ),
+                  //         ),
+                  //       ),
+                  //       Text(
+                  //         'Just now',
+                  //         style: TextStyle(
+                  //           color: Color(0xFF94A3B8),
+                  //           fontSize: 12,
+                  //           fontWeight: FontWeight.w500,
+                  //         ),
+                  //       ),
+                  //     ],
+                  //   ),
+                  // ),
                   const SizedBox(height: 24),
                 ],
               ),

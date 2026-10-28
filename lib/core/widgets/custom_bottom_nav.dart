@@ -37,18 +37,19 @@ class CustomBottomNav extends StatelessWidget {
             isSelected: currentIndex == 0,
             onTap: () => onTap(0),
           ),
+           _NavItem(
+            icon: Icons.qr_code_scanner_rounded,
+            label: 'Scan',
+            isSelected: currentIndex == 2,
+            onTap: () => onTap(2),
+          ),
           _NavItem(
             icon: Icons.people_alt_outlined,
             label: 'Visitors',
             isSelected: currentIndex == 1,
             onTap: () => onTap(1),
           ),
-          _NavItem(
-            icon: Icons.qr_code_scanner_rounded,
-            label: 'Scan',
-            isSelected: currentIndex == 2,
-            onTap: () => onTap(2),
-          ),
+         
         ],
       ),
     );

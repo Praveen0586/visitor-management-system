@@ -31,6 +31,7 @@ class Visitor {
   final String? passNumber;
   final String? unit;
   final bool printPhysicalPass;
+  final bool isPendingSync;
 
   const Visitor({
     this.id = '',
@@ -47,6 +48,7 @@ class Visitor {
     this.passNumber,
     this.unit,
     this.printPhysicalPass = false,
+    this.isPendingSync = false,
   });
 
   factory Visitor.fromJson(Map<String, dynamic> json) {
@@ -55,21 +57,28 @@ class Visitor {
       name: json['name']?.toString() ?? '',
       mobile: json['mobile']?.toString() ?? '',
       email: _nullIfEmpty(json['email']),
-      visitorType: json['visitor_type']?.toString() ??
+      visitorType:
+          json['visitor_type']?.toString() ??
           json['visitorType']?.toString() ??
           VisitorCategory.customer,
       project: json['project']?.toString() ?? 'Project A (Sumadhura Horizon)',
       purpose: json['purpose']?.toString() ?? 'Site Visit',
       status: json['status']?.toString() ?? VisitorStatus.registered,
-      createdAt: json['created_at']?.toString() ??
+      createdAt:
+          json['created_at']?.toString() ??
           json['createdAt']?.toString() ??
           DateTime.now().toIso8601String(),
       checkInTime: _nullIfEmpty(json['check_in_time'] ?? json['checkInTime']),
-      checkOutTime: _nullIfEmpty(json['check_out_time'] ?? json['checkOutTime']),
+      checkOutTime: _nullIfEmpty(
+        json['check_out_time'] ?? json['checkOutTime'],
+      ),
       passNumber: _nullIfEmpty(json['pass_number'] ?? json['passNumber']),
       unit: _nullIfEmpty(json['unit']),
-      printPhysicalPass: json['print_physical_pass'] == true ||
+      printPhysicalPass:
+          json['print_physical_pass'] == true ||
           json['printPhysicalPass'] == true,
+      isPendingSync:
+          json['is_pending_sync'] == true || json['isPendingSync'] == true,
     );
   }
 
@@ -89,18 +98,19 @@ class Visitor {
       'pass_number': passNumber,
       'unit': unit,
       'print_physical_pass': printPhysicalPass,
+      'is_pending_sync': isPendingSync,
     };
   }
 
   static Map<String, dynamic> checkInPatch(DateTime now) => {
-        'status': VisitorStatus.checkedIn,
-        'check_in_time': now.toIso8601String(),
-      };
+    'status': VisitorStatus.checkedIn,
+    'check_in_time': now.toIso8601String(),
+  };
 
   static Map<String, dynamic> checkOutPatch(DateTime now) => {
-        'status': VisitorStatus.checkedOut,
-        'check_out_time': now.toIso8601String(),
-      };
+    'status': VisitorStatus.checkedOut,
+    'check_out_time': now.toIso8601String(),
+  };
 
   Visitor copyWith({
     String? id,
@@ -117,6 +127,7 @@ class Visitor {
     String? passNumber,
     String? unit,
     bool? printPhysicalPass,
+    bool? isPendingSync,
   }) {
     return Visitor(
       id: id ?? this.id,
@@ -133,6 +144,7 @@ class Visitor {
       passNumber: passNumber ?? this.passNumber,
       unit: unit ?? this.unit,
       printPhysicalPass: printPhysicalPass ?? this.printPhysicalPass,
+      isPendingSync: isPendingSync ?? this.isPendingSync,
     );
   }
 
@@ -143,17 +155,48 @@ class Visitor {
   bool get canCheckIn => isRegistered;
   bool get canCheckOut => isCheckedIn;
 
-  DateTime? get createdDate => DateTime.tryParse(createdAt)?.toLocal();
-  DateTime? get checkInDate =>
-      checkInTime == null ? null : DateTime.tryParse(checkInTime!)?.toLocal();
-  DateTime? get checkOutDate =>
-      checkOutTime == null ? null : DateTime.tryParse(checkOutTime!)?.toLocal();
+  static DateTime? _parseDate(dynamic value) {
+    if (value == null) return null;
+    if (value is DateTime) return value.toLocal();
+    final str = value.toString().trim();
+    if (str.isEmpty) return null;
+
+    final parsed = DateTime.tryParse(str);
+    if (parsed != null) return parsed.toLocal();
+
+    final epoch = int.tryParse(str);
+    if (epoch != null) {
+      if (str.length == 10) {
+        return DateTime.fromMillisecondsSinceEpoch(epoch * 1000).toLocal();
+      } else if (str.length >= 13) {
+        return DateTime.fromMillisecondsSinceEpoch(epoch).toLocal();
+      }
+    }
+    return null;
+  }
+
+  DateTime? get createdDate => _parseDate(createdAt);
+  DateTime? get checkInDate => _parseDate(checkInTime);
+  DateTime? get checkOutDate => _parseDate(checkOutTime);
+
+  /// The most recent interaction/activity timestamp (check-out, check-in, or registration)
+  DateTime get lastActivityTime {
+    final dates = [
+      checkOutDate,
+      checkInDate,
+      createdDate,
+    ].whereType<DateTime>().toList();
+    if (dates.isEmpty) return DateTime.fromMillisecondsSinceEpoch(0);
+    return dates.reduce((a, b) => a.isAfter(b) ? a : b);
+  }
 
   String get initials {
     final parts = name.trim().split(RegExp(r'\s+'));
     if (parts.isEmpty || parts.first.isEmpty) return 'V';
     if (parts.length == 1) {
-      return parts.first.substring(0, parts.first.length.clamp(1, 2)).toUpperCase();
+      return parts.first
+          .substring(0, parts.first.length.clamp(1, 2))
+          .toUpperCase();
     }
     return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
   }
@@ -161,7 +204,8 @@ class Visitor {
   String get formattedPassNumber {
     if (passNumber != null && passNumber!.isNotEmpty) return passNumber!;
     final numId = int.tryParse(id) ?? 1;
-    return 'SUM-2024-${numId.toString().padLeft(3, '0')}';
+    final year = createdDate?.year ?? DateTime.now().year;
+    return 'SUM-$year-${numId.toString().padLeft(3, '0')}';
   }
 
   static String? _nullIfEmpty(dynamic value) {

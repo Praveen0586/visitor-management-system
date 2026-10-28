@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:vms/core/configs/theme/app_theme.dart';
 import 'package:vms/features/dashboard/models/visitor_model.dart';
 
 class StatusChip extends StatelessWidget {

@@ -9,21 +9,21 @@ import 'package:vms/features/dashboard/views/visitors_list_screen.dart';
 class MainNavigationShell extends StatelessWidget {
   const MainNavigationShell({super.key});
 
-  static const List<Widget> _screens = [
-    DashboardScreen(),
-    VisitorsListScreen(),
-    ScanScreen(),
-  ];
-
   @override
   Widget build(BuildContext context) {
     return Consumer<DashboardViewModel>(
       builder: (context, vm, _) {
         return Scaffold(
-          body: IndexedStack(
-            index: vm.currentNavIndex,
-            children: _screens,
-          ),
+          body: vm.currentNavIndex == 2
+              ? const ScanScreen()
+              : IndexedStack(
+                  index: vm.currentNavIndex,
+                  children: const [
+                    DashboardScreen(),
+                    VisitorsListScreen(),
+                    SizedBox.shrink(),
+                  ],
+                ),
           bottomNavigationBar: CustomBottomNav(
             currentIndex: vm.currentNavIndex,
             onTap: vm.setNavIndex,

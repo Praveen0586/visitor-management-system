@@ -12,9 +12,9 @@ class DashboardViewModel extends ChangeNotifier {
   DashboardViewModel({
     ApiServices? apiServices,
     LocalStorageService? storageService,
-    bool autoFetch = true,
-  })  : _apiServices = apiServices ?? ApiServices(),
-        _storageService = storageService ?? LocalStorageService() {
+    bool autoFetch = false,
+  }) : _apiServices = apiServices ?? ApiServices(),
+       _storageService = storageService ?? LocalStorageService() {
     if (autoFetch) {
       init();
     }
@@ -25,7 +25,8 @@ class DashboardViewModel extends ChangeNotifier {
   ViewStatus _status = ViewStatus.initial;
   String? _errorMessage;
   String _searchQuery = '';
-  String _selectedFilter = 'All'; // 'All', 'Checked In', 'Registered', 'Checked Out'
+  String _selectedFilter =
+      'All'; // 'All', 'Checked In', 'Registered', 'Checked Out'
   int _currentNavIndex = 0; // 0: Dashboard, 1: Visitors, 2: Scan
   DateTime _lastSyncTime = DateTime.now();
 
@@ -39,9 +40,9 @@ class DashboardViewModel extends ChangeNotifier {
   int get currentNavIndex => _currentNavIndex;
   DateTime get lastSyncTime => _lastSyncTime;
 
-  /// Filtered visitors by status and search query
+  /// Filtered visitors by status and search query, sorted by recent activity
   List<Visitor> get filteredVisitors {
-    return _visitors.where((visitor) {
+    final list = _visitors.where((visitor) {
       // 1. Status Filter
       if (_selectedFilter != 'All' && visitor.status != _selectedFilter) {
         return false;
@@ -55,24 +56,87 @@ class DashboardViewModel extends ChangeNotifier {
       }
       return true;
     }).toList();
+
+    list.sort((a, b) {
+      final cmp = b.lastActivityTime.compareTo(a.lastActivityTime);
+      if (cmp != 0) return cmp;
+      final idA = int.tryParse(a.id) ?? 0;
+      final idB = int.tryParse(b.id) ?? 0;
+      return idB.compareTo(idA);
+    });
+    return list;
   }
 
   /// Top 4 recent visitors for Dashboard preview
   List<Visitor> get recentVisitors {
-    return _visitors.take(4).toList();
+    final list = List<Visitor>.from(_visitors);
+    list.sort((a, b) {
+      final cmp = b.lastActivityTime.compareTo(a.lastActivityTime);
+      if (cmp != 0) return cmp;
+      final idA = int.tryParse(a.id) ?? 0;
+      final idB = int.tryParse(b.id) ?? 0;
+      return idB.compareTo(idA);
+    });
+    return list.take(4).toList();
   }
 
+  bool _isSameDay(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
+
   // ──────────────────────── KPIS ────────────────────────
+  /// Overall all-time visitors in registry
   int get totalVisitorsCount => _visitors.length;
 
+  /// Visitors with activity today (registered, checked in, checked out, or currently checked in)
+  int get todayVisitorsCount {
+    final now = DateTime.now();
+    return _visitors.where((v) {
+      if (v.isCheckedIn) return true;
+      if (v.createdDate != null && _isSameDay(v.createdDate!, now)) return true;
+      if (v.checkInDate != null && _isSameDay(v.checkInDate!, now)) return true;
+      if (v.checkOutDate != null && _isSameDay(v.checkOutDate!, now)) {
+        return true;
+      }
+      return false;
+    }).length;
+  }
+
+  /// Visitors currently checked in on premises
   int get currentlyCheckedInCount =>
       _visitors.where((v) => v.isCheckedIn).length;
 
-  int get checkedOutCount =>
-      _visitors.where((v) => v.isCheckedOut).length;
+  /// Overall all-time checked out visitors
+  int get checkedOutCount => _visitors.where((v) => v.isCheckedOut).length;
 
-  int get registeredCount =>
-      _visitors.where((v) => v.isRegistered).length;
+  /// Visitors who checked out today
+  int get checkedOutTodayCount {
+    final now = DateTime.now();
+    return _visitors.where((v) {
+      if (!v.isCheckedOut) return false;
+      if (v.checkOutDate != null) {
+        return _isSameDay(v.checkOutDate!, now);
+      }
+      if (v.createdDate != null) {
+        return _isSameDay(v.createdDate!, now);
+      }
+      return false;
+    }).length;
+  }
+
+  /// Overall all-time registered visitors
+  int get registeredCount => _visitors.where((v) => v.isRegistered).length;
+
+  /// Visitors registered today
+  int get registeredTodayCount {
+    final now = DateTime.now();
+    return _visitors.where((v) {
+      if (!v.isRegistered) return false;
+      if (v.createdDate != null) {
+        return _isSameDay(v.createdDate!, now);
+      }
+      return false;
+    }).length;
+  }
 
   // ──────────────────────── ACTIONS ────────────────────────
 
@@ -99,23 +163,42 @@ class DashboardViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Initialize: Cache-First strategy
-  Future<void> init() async {
-    // 1. Read from local storage first (instant paint)
-    final cached = await _storageService.getCachedVisitors();
-    if (cached.isNotEmpty) {
-      _visitors = cached;
-      _status = ViewStatus.success;
-      notifyListeners();
-    }
-
-    // 2. Refresh from remote API in background
-    await fetchVisitors();
+  /// Sort visitors descending by their latest activity/interaction time
+  void _sortVisitors() {
+    _visitors.sort((a, b) {
+      final cmp = b.lastActivityTime.compareTo(a.lastActivityTime);
+      if (cmp != 0) return cmp;
+      final idA = int.tryParse(a.id) ?? 0;
+      final idB = int.tryParse(b.id) ?? 0;
+      return idB.compareTo(idA);
+    });
   }
 
-  /// Fetch from remote API and refresh local cache
-  Future<void> fetchVisitors() async {
-    if (_visitors.isEmpty) {
+  Future<void> init() async {
+    try {
+      final cached = await _storageService.getCachedVisitors();
+
+      if (cached.isNotEmpty) {
+        _visitors = cached;
+        _sortVisitors();
+        _status = ViewStatus.success;
+        notifyListeners();
+
+        fetchVisitors(silent: true);
+      } else {
+        _status = ViewStatus.loading;
+        notifyListeners();
+        await fetchVisitors(silent: false);
+      }
+    } catch (e) {
+      _status = ViewStatus.error;
+      _errorMessage = 'Failed to load initial data: $e';
+      notifyListeners();
+    }
+  }
+
+  Future<void> fetchVisitors({bool silent = false}) async {
+    if (!silent && _visitors.isEmpty) {
       _status = ViewStatus.loading;
       notifyListeners();
     }
@@ -124,13 +207,34 @@ class DashboardViewModel extends ChangeNotifier {
     try {
       final remoteVisitors = await _apiServices.getAllVisitors();
       if (remoteVisitors.isNotEmpty) {
-        _visitors = remoteVisitors;
+        final pendingDeletes = await _storageService.getPendingDeletedIds();
+
+        final cleanRemote = remoteVisitors
+            .where((v) => !pendingDeletes.contains(v.id))
+            .toList();
+
+        final merged = <Visitor>[];
+        for (final remote in cleanRemote) {
+          final local = _visitors.firstWhere(
+            (v) => v.id == remote.id,
+            orElse: () => remote,
+          );
+          merged.add(local.isPendingSync ? local : remote);
+        }
+
+        for (final local in _visitors) {
+          if (local.isPendingSync && !merged.any((m) => m.id == local.id)) {
+            merged.add(local);
+          }
+        }
+
+        _visitors = merged;
+        _sortVisitors();
         await _storageService.saveVisitors(_visitors);
       }
       _status = ViewStatus.success;
       _lastSyncTime = DateTime.now();
     } catch (e) {
-      // If offline but cache exists, remain in success state with cached data
       if (_visitors.isEmpty) {
         _status = ViewStatus.error;
         _errorMessage = 'Could not load visitors: $e';
@@ -140,59 +244,92 @@ class DashboardViewModel extends ChangeNotifier {
     }
   }
 
-  /// Check In visitor
   Future<bool> checkInVisitor(String id) async {
     final index = _visitors.indexWhere((v) => v.id == id);
     if (index == -1) return false;
 
+    // Marking pending sync and save locally
     final updated = _visitors[index].copyWith(
       status: VisitorStatus.checkedIn,
       checkInTime: DateTime.now().toIso8601String(),
+      isPendingSync: true,
     );
-
     _visitors[index] = updated;
+    _sortVisitors();
     await _storageService.saveVisitors(_visitors);
-    _lastSyncTime = DateTime.now();
     notifyListeners();
 
+    //Try remote sync
     try {
       await _apiServices.patchVisitorStatus(id, VisitorStatus.checkedIn);
+
+      final index = _visitors.indexWhere((v) => v.id == id);
+      _visitors[index] = _visitors[index].copyWith(isPendingSync: false);
+      await _storageService.saveVisitors(_visitors);
+      notifyListeners();
     } catch (_) {
-      // Retained in local cache
+      // Offline: remains isPendingSync: true in storage
     }
     return true;
   }
 
-  /// Check Out visitor
   Future<bool> checkOutVisitor(String id) async {
     final index = _visitors.indexWhere((v) => v.id == id);
+
     if (index == -1) return false;
 
     final updated = _visitors[index].copyWith(
-      status: VisitorStatus.checkedOut,
       checkOutTime: DateTime.now().toIso8601String(),
+      status: VisitorStatus.checkedOut,
+      isPendingSync: true,
     );
-
     _visitors[index] = updated;
+    _sortVisitors();
     await _storageService.saveVisitors(_visitors);
-    _lastSyncTime = DateTime.now();
     notifyListeners();
-
     try {
       await _apiServices.patchVisitorStatus(id, VisitorStatus.checkedOut);
-    } catch (_) {
-      // Retained in local cache
-    }
+
+      final currentIndex = _visitors.indexWhere((v) => v.id == id);
+      _visitors[currentIndex] = _visitors[currentIndex].copyWith(isPendingSync: false);
+      await _storageService.saveVisitors(_visitors);
+      notifyListeners();
+    } catch (_) {}
     return true;
   }
+
+  // /// Check Out visitor
+  // Future<bool> checkOutVisitor(String id) async {
+  //   final index = _visitors.indexWhere((v) => v.id == id);
+  //   if (index == -1) return false;
+
+  //   final updated = _visitors[index].copyWith(
+  //     status: VisitorStatus.checkedOut,
+  //     checkOutTime: DateTime.now().toIso8601String(),
+  //   );
+
+  //   _visitors[index] = updated;
+  //   _sortVisitors();
+  //   await _storageService.saveVisitors(_visitors);
+  //   _lastSyncTime = DateTime.now();
+  //   notifyListeners();
+
+  //   try {
+  //     await _apiServices.patchVisitorStatus(id, VisitorStatus.checkedOut);
+  //   } catch (_) {
+  //     // Retained in local cache
+  //   }
+  //   return true;
+  // }
 
   /// Register new visitor
   Future<bool> registerVisitor(Visitor visitor) async {
     final newId = visitor.id.isNotEmpty
         ? visitor.id
         : (_visitors.length + 1).toString();
-    final passNumber = visitor.passNumber ??
-        'SUM-2024-${newId.padLeft(3, '0')}';
+    final year = DateTime.now().year;
+    final passNumber =
+        visitor.passNumber ?? 'SUM-$year-${newId.padLeft(3, '0')}';
 
     final toAdd = visitor.copyWith(
       id: newId,
@@ -201,6 +338,7 @@ class DashboardViewModel extends ChangeNotifier {
     );
 
     _visitors.insert(0, toAdd);
+    _sortVisitors();
     await _storageService.saveVisitors(_visitors);
     _lastSyncTime = DateTime.now();
     notifyListeners();
@@ -219,6 +357,7 @@ class DashboardViewModel extends ChangeNotifier {
     if (index == -1) return false;
 
     _visitors[index] = visitor;
+    _sortVisitors();
     await _storageService.saveVisitors(_visitors);
     _lastSyncTime = DateTime.now();
     notifyListeners();
@@ -236,15 +375,21 @@ class DashboardViewModel extends ChangeNotifier {
     final index = _visitors.indexWhere((v) => v.id == id);
     if (index == -1) return false;
 
+    // 1. Remove locally immediately (instant UI response)
     _visitors.removeAt(index);
     await _storageService.saveVisitors(_visitors);
-    _lastSyncTime = DateTime.now();
     notifyListeners();
 
+    // 2. Mark this ID as pending deletion so it can't be resurrected
+    await _storageService.addPendingDeletedId(id);
+
+    // 3. Try deleting on server
     try {
       await _apiServices.deleteVisitor(id);
+      // Success: clean up pending delete ID
+      await _storageService.removePendingDeletedId(id);
     } catch (_) {
-      // Retained in local cache
+      // Offline: stays in pending deletes queue
     }
     return true;
   }
