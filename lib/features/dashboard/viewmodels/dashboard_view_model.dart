@@ -143,6 +143,7 @@ class DashboardViewModel extends ChangeNotifier {
   void setNavIndex(int index) {
     if (_currentNavIndex != index) {
       _currentNavIndex = index;
+      _searchQuery = '';
       notifyListeners();
     }
   }

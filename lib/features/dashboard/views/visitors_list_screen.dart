@@ -20,6 +20,12 @@ class _VisitorsListScreenState extends State<VisitorsListScreen> {
   final TextEditingController _searchCtrl = TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+    _searchCtrl.text = context.read<DashboardViewModel>().searchQuery;
+  }
+
+  @override
   void dispose() {
     _searchCtrl.dispose();
     super.dispose();
@@ -32,6 +38,9 @@ class _VisitorsListScreenState extends State<VisitorsListScreen> {
       appBar: const AppHeader(title: 'Dashboard'),
       body: Consumer<DashboardViewModel>(
         builder: (context, vm, _) {
+          if (vm.searchQuery.isEmpty && _searchCtrl.text.isNotEmpty) {
+            _searchCtrl.clear();
+          }
           final visitors = vm.filteredVisitors;
           final totalCount = vm.totalVisitorsCount;
 
@@ -126,6 +135,7 @@ class _VisitorsListScreenState extends State<VisitorsListScreen> {
                       ),
                       child: TextField(
                         controller: _searchCtrl,
+                        selectAllOnFocus: false,
                         onChanged: vm.setSearchQuery,
                         style: const TextStyle(
                           fontSize: 14,

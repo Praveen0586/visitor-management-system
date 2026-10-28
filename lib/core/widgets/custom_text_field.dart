@@ -96,6 +96,7 @@ class CustomTextField extends StatelessWidget {
                   controller: controller,
                   keyboardType: keyboardType,
                   maxLines: maxLines,
+                  selectAllOnFocus: false,
                   onChanged: onChanged,
                   style: const TextStyle(
                     fontSize: 14,

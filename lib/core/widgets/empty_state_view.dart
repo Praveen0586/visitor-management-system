@@ -165,59 +165,59 @@ class EmptyStateView extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 16),
-        // Pre-Approved Deliveries Info Card
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: const Color(0xFFF0FDF4),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFDCFCE7), width: 1),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFDCFCE7),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(
-                  Icons.verified_user_outlined,
-                  color: Color(0xFF15803D),
-                  size: 18,
-                ),
-              ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Pre-Approved Deliveries',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF14532D),
-                      ),
-                    ),
-                    SizedBox(height: 2),
-                    Text(
-                      'Resident entry codes can be verified instantly by scanning their pass via the bottom Scan action.',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF166534),
-                        height: 1.3,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
+        // // Pre-Approved Deliveries Info Card
+        // Container(
+        //   width: double.infinity,
+        //   padding: const EdgeInsets.all(16),
+        //   decoration: BoxDecoration(
+        //     color: const Color(0xFFF0FDF4),
+        //     borderRadius: BorderRadius.circular(12),
+        //     border: Border.all(color: const Color(0xFFDCFCE7), width: 1),
+        //   ),
+        //   child: Row(
+        //     crossAxisAlignment: CrossAxisAlignment.start,
+        //     children: [
+        //       Container(
+        //         width: 32,
+        //         height: 32,
+        //         decoration: BoxDecoration(
+        //           color: const Color(0xFFDCFCE7),
+        //           borderRadius: BorderRadius.circular(8),
+        //         ),
+        //         child: const Icon(
+        //           Icons.verified_user_outlined,
+        //           color: Color(0xFF15803D),
+        //           size: 18,
+        //         ),
+        //       ),
+        //       const SizedBox(width: 12),
+        //       // const Expanded(
+        //       //   child: Column(
+        //       //     crossAxisAlignment: CrossAxisAlignment.start,
+        //       //     children: [
+        //       //       Text(
+        //       //         'Pre-Approved Deliveries',
+        //       //         style: TextStyle(
+        //       //           fontSize: 13,
+        //       //           fontWeight: FontWeight.w700,
+        //       //           color: Color(0xFF14532D),
+        //       //         ),
+        //       //       ),
+        //       //       SizedBox(height: 2),
+        //       //       Text(
+        //       //         'Resident entry codes can be verified instantly by scanning their pass via the bottom Scan action.',
+        //       //         style: TextStyle(
+        //       //           fontSize: 12,
+        //       //           color: Color(0xFF166534),
+        //       //           height: 1.3,
+        //       //         ),
+        //       //       ),
+        //       //     ],
+        //       //   ),
+        //       // ),
+        //     ],
+        //   ),
+        // ),
       ],
     );
   }

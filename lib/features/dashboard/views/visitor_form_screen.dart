@@ -32,6 +32,7 @@ class _VisitorFormScreenState extends State<VisitorFormScreen> {
   String? _purposeError;
 
   bool _hasAttemptedSubmit = false;
+  bool _shouldAllowPop = false;
 
   final List<String> _projectOptions = [
     'Project A (Sumadhura Horizon)',
@@ -80,6 +81,87 @@ class _VisitorFormScreenState extends State<VisitorFormScreen> {
       _emailError == null &&
       _purposeError == null;
 
+  bool get _hasUnsavedChanges {
+    if (_shouldAllowPop) return false;
+    if (widget.existingVisitor != null) {
+      final v = widget.existingVisitor!;
+      return _nameCtrl.text != v.name ||
+          _mobileCtrl.text != v.mobile ||
+          _emailCtrl.text != (v.email ?? '') ||
+          _purposeCtrl.text != v.purpose ||
+          _selectedCategory != v.visitorType ||
+          _selectedProject != v.project;
+    }
+    return _nameCtrl.text.trim().isNotEmpty ||
+        _mobileCtrl.text.trim().isNotEmpty ||
+        _emailCtrl.text.trim().isNotEmpty ||
+        _purposeCtrl.text.trim().isNotEmpty;
+  }
+
+  Future<void> _handleBackPress() async {
+    if (!_hasUnsavedChanges) {
+      Navigator.of(context).pop();
+      return;
+    }
+
+    final shouldDiscard = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          'Discard changes?',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: AppTheme.navy,
+          ),
+        ),
+        content: const Text(
+          'You have unsaved entries in the visitor form. Are you sure you want to discard them?',
+          style: TextStyle(
+            fontSize: 14,
+            color: Color(0xFF64748B),
+          ),
+        ),
+        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF64748B),
+              ),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFDC2626),
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text(
+              'Discard',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldDiscard == true && mounted) {
+      setState(() {
+        _shouldAllowPop = true;
+      });
+      Navigator.of(context).pop();
+    }
+  }
+
   void _saveVisitor() {
     setState(() {
       _hasAttemptedSubmit = true;
@@ -107,6 +189,7 @@ class _VisitorFormScreenState extends State<VisitorFormScreen> {
           behavior: SnackBarBehavior.floating,
         ),
       );
+      setState(() => _shouldAllowPop = true);
       Navigator.of(context).pop();
     } else {
       final newId = DateTime.now().millisecondsSinceEpoch.toString();
@@ -132,6 +215,7 @@ class _VisitorFormScreenState extends State<VisitorFormScreen> {
         context,
         visitor: newVisitor,
         onClose: () {
+          setState(() => _shouldAllowPop = true);
           Navigator.of(context).pop();
         },
       );
@@ -142,24 +226,30 @@ class _VisitorFormScreenState extends State<VisitorFormScreen> {
   Widget build(BuildContext context) {
     final isEditing = widget.existingVisitor != null;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF7F8FA),
-      // appBar: const AppHeader(title: 'Dashboard'),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Subheader Row: Back Arrow + Title + Refresh + Help
-              Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back, color: AppTheme.navy),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 32),
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
+    return PopScope(
+      canPop:false ,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        await _handleBackPress();
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF7F8FA),
+        // appBar: const AppHeader(title: 'Dashboard'),
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Subheader Row: Back Arrow + Title + Refresh + Help
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back, color: AppTheme.navy),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(minWidth: 32),
+                      onPressed: _handleBackPress,
+                    ),
                   const SizedBox(width: 8),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -555,7 +645,7 @@ class _VisitorFormScreenState extends State<VisitorFormScreen> {
                     child: SizedBox(
                       height: 48,
                       child: OutlinedButton.icon(
-                        onPressed: () => Navigator.of(context).pop(),
+                        onPressed: _handleBackPress,
                         icon: const Icon(Icons.close, size: 18, color: AppTheme.navy),
                         label: const Text(
                           'CANCEL',
@@ -609,6 +699,7 @@ class _VisitorFormScreenState extends State<VisitorFormScreen> {
           ),
         ),
       ),
+    ),
     );
   }
 }
