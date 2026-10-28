@@ -165,4 +165,4 @@ The API stays online during evaluation. Please do not press **Reset** or **Gener
 
 ## Submission
 
-- **APK:** [Download](https://drive.google.com/file/d/1Oy5t55MxicBr17P85uU2AwaoodYsiaJi/view?usp=drive_link)
+- **APK:** [Download](https://drive.google.com/file/d/1qq1JFe5NXPTSyZDm3MPKeY9iXPon4m0O/view?usp=sharing)
